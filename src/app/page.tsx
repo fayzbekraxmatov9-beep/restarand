@@ -6,6 +6,7 @@ import MenuPreview from "@/components/MenuPreview";
 import FeaturesPreview from "@/components/FeaturesPreview";
 import BookingFormSection from "@/components/BookingFormSection";
 import ReviewsPreview from "@/components/ReviewsPreview";
+import LocationSection from "@/components/LocationSection";
 
 export default function Home() {
   return (
@@ -19,6 +20,7 @@ export default function Home() {
         <FeaturesPreview />
         <BookingFormSection />
         <ReviewsPreview />
+        <LocationSection />
       </main>
 
       <Footer />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Phone, Clock, Users, Calendar, CheckCircle2 } from "lucide-react";
+import { Phone, Clock, Users, Calendar, CheckCircle2, Loader2 } from "lucide-react";
 
 export default function BookingFormSection() {
   const [booking, setBooking] = useState({
@@ -12,12 +12,35 @@ export default function BookingFormSection() {
     time: "19:00",
     comment: "",
   });
+  const [loading, setLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleBooking = (e: React.FormEvent) => {
+  const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!booking.name || !booking.phone) return;
-    setBookingSuccess(true);
+    if (!booking.name || !booking.phone || !booking.date) return;
+
+    setLoading(true);
+    setErrorMessage("");
+
+    try {
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(booking),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setBookingSuccess(true);
+      } else {
+        setErrorMessage(data.error || "Xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.");
+      }
+    } catch {
+      setErrorMessage("Server bilan bog'lanishda xatolik yuz berdi.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -68,10 +91,13 @@ export default function BookingFormSection() {
                   </div>
                   <h3 className="text-2xl font-bold text-white">Stol Muvaffaqiyatli Band Qilindi!</h3>
                   <p className="text-stone-400 text-sm">
-                    Hurmatli <span className="text-amber-400 font-semibold">{booking.name}</span>, sizning so&apos;rovingiz qabul qilindi. Tez orada operatorimiz siz bilan bog&apos;lanadi.
+                    Hurmatli <span className="text-amber-400 font-semibold">{booking.name}</span>, sizning so&apos;rovingiz bazaga saqlandi. Tez orada operatorimiz siz bilan bog&apos;lanadi.
                   </p>
                   <button
-                    onClick={() => setBookingSuccess(false)}
+                    onClick={() => {
+                      setBookingSuccess(false);
+                      setBooking({ name: "", phone: "", guests: "2", date: "", time: "19:00", comment: "" });
+                    }}
                     className="mt-4 px-6 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-sm font-medium text-white transition"
                   >
                     Yangi bron qilish
@@ -79,8 +105,14 @@ export default function BookingFormSection() {
                 </div>
               ) : (
                 <form onSubmit={handleBooking} className="space-y-4">
+                  {errorMessage && (
+                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+                      {errorMessage}
+                    </div>
+                  )}
+
                   <div>
-                    <label className="block text-xs font-medium text-stone-400 mb-1">Ismingiz</label>
+                    <label className="block text-xs font-medium text-stone-400 mb-1">Ismingiz *</label>
                     <input
                       type="text"
                       required
@@ -92,7 +124,7 @@ export default function BookingFormSection() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-stone-400 mb-1">Telefon Raqamingiz</label>
+                    <label className="block text-xs font-medium text-stone-400 mb-1">Telefon Raqamingiz *</label>
                     <input
                       type="tel"
                       required
@@ -123,7 +155,7 @@ export default function BookingFormSection() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-stone-400 mb-1">Sana</label>
+                      <label className="block text-xs font-medium text-stone-400 mb-1">Sana *</label>
                       <div className="relative">
                         <Calendar className="w-4 h-4 text-stone-500 absolute left-3 top-3.5" />
                         <input
@@ -150,9 +182,11 @@ export default function BookingFormSection() {
 
                   <button
                     type="submit"
-                    className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-sm transition-all shadow-lg shadow-amber-500/25 mt-2"
+                    disabled={loading}
+                    className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-stone-950 font-bold text-sm transition-all shadow-lg shadow-amber-500/25 mt-2 flex items-center justify-center gap-2"
                   >
-                    Bron Qilishni Tasdiqlash
+                    {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                    <span>{loading ? "Yuborilmoqda..." : "Bron Qilishni Tasdiqlash"}</span>
                   </button>
                 </form>
               )}

@@ -3,17 +3,40 @@
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle2 } from "lucide-react";
+import { MapPin, Phone, Clock, Send, CheckCircle2, Loader2 } from "lucide-react";
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: "", phone: "", message: "" });
+  const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.phone) return;
-    setSent(true);
-    setForm({ name: "", phone: "", message: "" });
+
+    setLoading(true);
+    setErrorMsg("");
+
+    try {
+      const res = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setSent(true);
+        setForm({ name: "", phone: "", message: "" });
+      } else {
+        setErrorMsg(data.error || "Xatolik yuz berdi");
+      }
+    } catch {
+      setErrorMsg("Server bilan bog'lanishda xatolik yuz berdi");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -91,7 +114,7 @@ export default function ContactPage() {
               <div className="p-8 sm:p-10 rounded-3xl bg-stone-900 border border-stone-800">
                 <h3 className="text-2xl font-bold text-white mb-2">Xabar Yuboring</h3>
                 <p className="text-xs text-stone-400 mb-6">
-                  Quyidagi shaklni to&apos;ldiring, mutaxassislarimiz 15 daqiqa ichida javob berishadi.
+                  Quyidagi shaklni to&apos;ldiring, mutaxassislarimiz 15 daqiqa ichida siz bilan bog&apos;lanishadi.
                 </p>
 
                 {sent ? (
@@ -101,7 +124,7 @@ export default function ContactPage() {
                     </div>
                     <h4 className="text-xl font-bold text-white">Xabaringiz Qabul Qilindi!</h4>
                     <p className="text-stone-400 text-sm">
-                      Tez orada operatorimiz siz bilan bog&apos;lanadi.
+                      Ma&apos;lumotlar bazaga muvaffaqiyatli saqlandi. Tez orada operatorimiz siz bilan bog&apos;lanadi.
                     </p>
                     <button
                       onClick={() => setSent(false)}
@@ -112,8 +135,14 @@ export default function ContactPage() {
                   </div>
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-4">
+                    {errorMsg && (
+                      <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+                        {errorMsg}
+                      </div>
+                    )}
+
                     <div>
-                      <label className="block text-xs font-medium text-stone-400 mb-1">Ismingiz</label>
+                      <label className="block text-xs font-medium text-stone-400 mb-1">Ismingiz *</label>
                       <input
                         type="text"
                         required
@@ -125,7 +154,7 @@ export default function ContactPage() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-stone-400 mb-1">Telefon Raqamingiz</label>
+                      <label className="block text-xs font-medium text-stone-400 mb-1">Telefon Raqamingiz *</label>
                       <input
                         type="tel"
                         required
@@ -149,14 +178,27 @@ export default function ContactPage() {
 
                     <button
                       type="submit"
-                      className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-sm transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2"
+                      disabled={loading}
+                      className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-stone-950 font-bold text-sm transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2"
                     >
+                      {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                       <Send className="w-4 h-4" />
-                      <span>Xabarni Yuborish</span>
+                      <span>{loading ? "Yuborilmoqda..." : "Xabarni Yuborish"}</span>
                     </button>
                   </form>
                 )}
               </div>
+            </div>
+
+            {/* Interactive Map */}
+            <div className="mt-16 rounded-3xl overflow-hidden border border-stone-800 shadow-2xl relative">
+              <iframe
+                title="Restoran Lokatsiyasi"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2996.8837136015504!2d69.27855687652758!3d41.31133980069795!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x38ae8b2931f41001%3A0xf0b86a073f1d5334!2sAmir%20Temur%20Square!5e0!3m2!1sen!2suz!4v1718000000000!5m2!1sen!2suz"
+                className="w-full h-[400px] border-0 filter contrast-105"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
             </div>
           </div>
         </section>

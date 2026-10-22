@@ -1,31 +1,66 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { reviewsData } from "@/data/restaurant";
-import { Star, CheckCircle2, MessageSquarePlus } from "lucide-react";
+import { reviewsData, ReviewItem } from "@/data/restaurant";
+import { Star, CheckCircle2, MessageSquarePlus, Loader2 } from "lucide-react";
 
 export default function ReviewsPage() {
-  const [reviews, setReviews] = useState(reviewsData);
+  const [reviews, setReviews] = useState<ReviewItem[]>(reviewsData);
   const [form, setForm] = useState({ name: "", role: "Mehmon", comment: "", rating: 5 });
+  const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Load reviews from Backend on mount
+  useEffect(() => {
+    fetch("/api/reviews")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data && data.data.length > 0) {
+          setReviews(data.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.comment) return;
-    setReviews([
-      {
-        id: Date.now(),
-        name: form.name,
-        role: form.role || "Mehmon",
-        comment: form.comment,
-        rating: Number(form.rating)
-      },
-      ...reviews
-    ]);
-    setSubmitted(true);
-    setForm({ name: "", role: "Mehmon", comment: "", rating: 5 });
+
+    setLoading(true);
+    setErrorMsg("");
+
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setReviews([
+          {
+            id: data.reviewId || Date.now(),
+            name: form.name,
+            role: form.role || "Mehmon",
+            comment: form.comment,
+            rating: Number(form.rating)
+          },
+          ...reviews
+        ]);
+        setSubmitted(true);
+        setForm({ name: "", role: "Mehmon", comment: "", rating: 5 });
+      } else {
+        setErrorMsg(data.error || "Xatolik yuz berdi");
+      }
+    } catch {
+      setErrorMsg("Server bilan bog'lanishda xatolik yuz berdi");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,7 +94,7 @@ export default function ReviewsPage() {
                 >
                   <div>
                     <div className="flex gap-1 text-amber-400 mb-4">
-                      {[...Array(review.rating)].map((_, idx) => (
+                      {[...Array(review.rating || 5)].map((_, idx) => (
                         <Star key={idx} className="w-4 h-4 fill-amber-400" />
                       ))}
                     </div>
@@ -69,7 +104,7 @@ export default function ReviewsPage() {
                   </div>
                   <div className="flex items-center gap-3 pt-4 border-t border-stone-800">
                     <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center">
-                      {review.name[0]}
+                      {review.name ? review.name[0] : "M"}
                     </div>
                     <div>
                       <h4 className="font-semibold text-white text-sm">{review.name}</h4>
@@ -88,21 +123,27 @@ export default function ReviewsPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-white">O&apos;z Fikringizni Qoldiring</h3>
-                  <p className="text-xs text-stone-400">Sizning fikringiz biz uchun juda muhim</p>
+                  <p className="text-xs text-stone-400">Sizning fikringiz ma&apos;lumotlar bazasiga saqlanadi</p>
                 </div>
               </div>
 
               {submitted && (
                 <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-3 text-amber-300 text-sm">
                   <CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0" />
-                  <span>Katta rahmat! Sizning fikringiz muvaffaqiyatli qo&apos;shildi.</span>
+                  <span>Katta rahmat! Sizning fikringiz muvaffaqiyatli saqlandi.</span>
+                </div>
+              )}
+
+              {errorMsg && (
+                <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+                  {errorMsg}
                 </div>
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-stone-400 mb-1">Ismingiz</label>
+                    <label className="block text-xs font-medium text-stone-400 mb-1">Ismingiz *</label>
                     <input
                       type="text"
                       required
@@ -127,7 +168,7 @@ export default function ReviewsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-stone-400 mb-1">Fikringiz va Taassurotlaringiz</label>
+                  <label className="block text-xs font-medium text-stone-400 mb-1">Fikringiz va Taassurotlaringiz *</label>
                   <textarea
                     rows={4}
                     required
@@ -140,9 +181,11 @@ export default function ReviewsPage() {
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-sm transition shadow-lg shadow-amber-500/20"
+                  disabled={loading}
+                  className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-stone-950 font-bold text-sm transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2"
                 >
-                  Fikrni Yuborish
+                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>{loading ? "Yuborilmoqda..." : "Fikrni Yuborish"}</span>
                 </button>
               </form>
             </div>

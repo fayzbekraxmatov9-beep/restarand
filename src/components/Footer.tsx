@@ -29,6 +29,7 @@ export default function Footer() {
               <li><Link href="/afzalliklar" className="hover:text-amber-400 transition">Afzalliklarimiz</Link></li>
               <li><Link href="/fikrlar" className="hover:text-amber-400 transition">Mijozlar Fikrlari</Link></li>
               <li><Link href="/boglanish" className="hover:text-amber-400 transition">Bog&apos;lanish</Link></li>
+              <li><Link href="/admin" className="text-amber-400/80 hover:text-amber-400 transition font-medium">Admin Panel</Link></li>
             </ul>
           </div>
 

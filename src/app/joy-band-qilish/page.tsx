@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Phone, Clock, Users, Calendar, CheckCircle2, ShieldCheck, Sparkles, MapPin } from "lucide-react";
+import { Phone, Clock, Users, Calendar, CheckCircle2, ShieldCheck, Sparkles, Loader2 } from "lucide-react";
 
 export default function BookingPage() {
   const [booking, setBooking] = useState({
@@ -15,12 +15,35 @@ export default function BookingPage() {
     roomType: "oddiy",
     comment: ""
   });
+  const [loading, setLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleBooking = (e: React.FormEvent) => {
+  const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!booking.name || !booking.phone || !booking.date) return;
-    setBookingSuccess(true);
+
+    setLoading(true);
+    setErrorMessage("");
+
+    try {
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(booking),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setBookingSuccess(true);
+      } else {
+        setErrorMessage(data.error || "Xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.");
+      }
+    } catch {
+      setErrorMessage("Server bilan bog'lanishda xatolik yuz berdi.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -111,7 +134,7 @@ export default function BookingPage() {
                     </div>
                     <h3 className="text-2xl sm:text-3xl font-extrabold text-white">Stol Muvaffaqiyatli Band Qilindi!</h3>
                     <p className="text-stone-300 text-sm max-w-md mx-auto leading-relaxed">
-                      Hurmatli <span className="text-amber-400 font-semibold">{booking.name}</span>, sizning rezervatsiya so&apos;rovingiz qabul qilindi. Tez orada operatorimiz siz bilan bog&apos;lanadi.
+                      Hurmatli <span className="text-amber-400 font-semibold">{booking.name}</span>, sizning rezervatsiya so&apos;rovingiz bazaga saqlandi. Tez orada operatorimiz siz bilan bog&apos;lanadi.
                     </p>
                     <div className="p-4 rounded-xl bg-stone-950 border border-stone-800 max-w-sm mx-auto text-left text-xs text-stone-400 space-y-1 mt-4">
                       <div><strong className="text-stone-200">Sana:</strong> {booking.date}</div>
@@ -119,7 +142,10 @@ export default function BookingPage() {
                       <div><strong className="text-stone-200">Mehmonlar soni:</strong> {booking.guests} kishi</div>
                     </div>
                     <button
-                      onClick={() => setBookingSuccess(false)}
+                      onClick={() => {
+                        setBookingSuccess(false);
+                        setBooking({ name: "", phone: "", guests: "2", date: "", time: "19:00", roomType: "oddiy", comment: "" });
+                      }}
                       className="mt-6 px-6 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-sm font-semibold text-white transition"
                     >
                       Yana yangi bron qilish
@@ -131,6 +157,12 @@ export default function BookingPage() {
                     <p className="text-xs text-stone-400 mb-6">
                       Iltimos, ma&apos;lumotlarni to&apos;ldiring. Administratorimiz tasdiqlash uchun tez orada bog&apos;lanadi.
                     </p>
+
+                    {errorMessage && (
+                      <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+                        {errorMessage}
+                      </div>
+                    )}
 
                     <form onSubmit={handleBooking} className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -241,9 +273,11 @@ export default function BookingPage() {
 
                       <button
                         type="submit"
-                        className="w-full py-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-sm transition-all shadow-lg shadow-amber-500/25 mt-2"
+                        disabled={loading}
+                        className="w-full py-4 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-stone-950 font-bold text-sm transition-all shadow-lg shadow-amber-500/25 mt-2 flex items-center justify-center gap-2"
                       >
-                        Bron Qilishni Tasdiqlash
+                        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                        <span>{loading ? "Yuborilmoqda..." : "Bron Qilishni Tasdiqlash"}</span>
                       </button>
                     </form>
                   </div>
